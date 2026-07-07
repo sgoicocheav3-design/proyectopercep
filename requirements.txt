@@ -30,3 +30,6 @@ scikit-learn==1.3.0
 matplotlib==3.7.2
 tqdm==4.66.1
 kaggle==1.5.16
+
+# --- Testing (no se instala en la imagen de deploy, ver requirements-api.txt) ---
+pytest==7.4.3

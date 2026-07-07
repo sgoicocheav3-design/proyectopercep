@@ -18,4 +18,8 @@ EXPOSE 5000
 
 # Render (y servicios similares) inyectan $PORT en runtime; se usa 5000 como
 # fallback para correr el contenedor localmente sin definir esa variable.
-CMD gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --timeout 120 src.api.app:app
+# 1 solo worker: cada worker de gunicorn carga su propia copia de TensorFlow
+# + el modelo en memoria: con 2+ workers se supera la RAM del plan free de
+# Render (512MB) y el proceso muere (OOM -> 502). --threads da algo de
+# concurrencia sin duplicar el modelo.
+CMD gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 1 --threads 4 --timeout 120 src.api.app:app
