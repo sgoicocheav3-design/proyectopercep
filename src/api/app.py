@@ -15,9 +15,13 @@ from src.api.inference import predict
 
 # Origenes permitidos para las peticiones CORS del frontend (Vite corre en
 # 5173 por defecto). Configurable via env var para otros entornos/puertos.
-ALLOWED_ORIGINS = os.environ.get(
-    "FRONTEND_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
-).split(",")
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "FRONTEND_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip()
+]
 
 
 def create_app() -> Flask:

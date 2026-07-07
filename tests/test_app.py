@@ -41,6 +41,12 @@ def test_predict_archivo_vacio(client):
     assert response.status_code == 400
 
 
+def test_cors_header_para_origen_permitido(client):
+    response = client.get("/health", headers={"Origin": "http://localhost:5173"})
+
+    assert response.headers.get("Access-Control-Allow-Origin") == "http://localhost:5173"
+
+
 @patch("src.api.app.predict")
 def test_predict_exitoso(mock_predict, client):
     mock_predict.return_value = {
