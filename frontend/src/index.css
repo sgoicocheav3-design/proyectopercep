@@ -14,18 +14,55 @@
   --color-forest-800: #22462c;
   --color-forest-900: #1b3823;
 
+  --color-accent-50:  #F2EEFC;
+  --color-accent-100: #E4DBFA;
   --color-accent-500: #7c5ce0;
   --color-accent-600: #6d4cd6;
 }
 
 body {
   @apply bg-gray-50 text-gray-800 antialiased;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/* ── Scrollbar hide ─────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Shimmer skeleton ───────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #e8f0e9 25%,
+    #f4f9f5 50%,
+    #e8f0e9 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 0.5rem;
+}
+
+/* ── Fade-in page transition ────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.page-enter {
+  animation: fadeIn 0.25s ease-out both;
+}
+
+/* ── Pulse border for upload area ───────────────── */
+@keyframes border-pulse {
+  0%, 100% { border-color: #c3e2c8; }
+  50%       { border-color: #69af78; }
+}
+
+.upload-pulse {
+  animation: border-pulse 2.4s ease-in-out infinite;
 }

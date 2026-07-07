@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Camera, Info, Leaf, Send, User, X } from 'lucide-react';
+import { Camera, Info, Leaf, Send, User, X, Bot } from 'lucide-react';
 import { identifyPlant, formatPrediction } from '../lib/api';
 
 function nowLabel() {
@@ -13,26 +13,30 @@ function createMessage(role, text, imageUrl) {
 function MessageBubble({ message }) {
   const isUser = message.role === 'user';
   return (
-    <div className={`flex items-end gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div className={`flex items-end gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
       <div
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-          isUser ? 'bg-gray-200 text-gray-500' : 'bg-forest-100 text-forest-600'
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full shadow-sm ${
+          isUser ? 'bg-gray-200 text-gray-500' : 'bg-forest-600 text-white'
         }`}
       >
-        {isUser ? <User size={14} /> : <Leaf size={14} />}
+        {isUser ? <User size={13} /> : <Bot size={13} />}
       </div>
 
       <div className={`flex max-w-[78%] flex-col ${isUser ? 'items-end' : 'items-start'}`}>
         <div
-          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
             isUser
-              ? 'rounded-tr-sm bg-forest-100 text-gray-800'
-              : 'rounded-tl-sm border border-gray-100 bg-white text-gray-700 shadow-sm'
+              ? 'rounded-tr-sm bg-forest-600 text-white'
+              : 'rounded-tl-sm border border-gray-100 bg-white text-gray-700'
           }`}
         >
           {message.text && <p>{message.text}</p>}
           {message.imageUrl && (
-            <img src={message.imageUrl} alt="Adjunto enviado en el chat" className="mt-2 max-h-56 w-full rounded-xl object-cover" />
+            <img
+              src={message.imageUrl}
+              alt="Adjunto enviado en el chat"
+              className="mt-2 max-h-56 w-full rounded-xl object-cover"
+            />
           )}
         </div>
         <span className="mt-1 px-1 text-[11px] text-gray-400">{message.time}</span>
@@ -43,16 +47,16 @@ function MessageBubble({ message }) {
 
 function TypingBubble() {
   return (
-    <div className="flex items-end gap-2">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-forest-100 text-forest-600">
-        <Leaf size={14} />
+    <div className="flex items-end gap-2.5">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-forest-600 text-white shadow-sm">
+        <Bot size={13} />
       </div>
-      <div className="flex items-center gap-1 rounded-2xl rounded-tl-sm border border-gray-100 bg-white px-4 py-3 shadow-sm">
+      <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm border border-gray-100 bg-white px-4 py-3 shadow-sm">
         {[0, 1, 2].map((dot) => (
           <span
             key={dot}
-            className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-300"
-            style={{ animationDelay: `${dot * 120}ms` }}
+            className="h-2 w-2 rounded-full bg-forest-400"
+            style={{ animation: `bounce 1s ease-in-out ${dot * 150}ms infinite` }}
           />
         ))}
       </div>
@@ -60,19 +64,27 @@ function TypingBubble() {
   );
 }
 
+/** Quick-start suggestion chips */
+const SUGGESTIONS = [
+  '¿Qué enfermedades afectan al tomate?',
+  '¿Cómo prevenir el tizón tardío?',
+  '¿Cuándo debo fumigar?',
+];
+
 export default function ChatAssistant({ onBack }) {
   const [messages, setMessages] = useState([
     createMessage(
       'assistant',
-      "Hello! I'm your Plant Identification Assistant. You can send me a photo of a plant or describe it, and I'll help identify it!",
+      '¡Hola! Soy tu Asistente de Plantas. Envíame una foto de una hoja o hazme una pregunta sobre tus cultivos.',
     ),
   ]);
-  const [inputText, setInputText] = useState('');
-  const [pendingImage, setPendingImage] = useState(null); // { file, previewUrl }
-  const [isTyping, setIsTyping] = useState(false);
+  const [inputText, setInputText]   = useState('');
+  const [pendingImage, setPendingImage] = useState(null);
+  const [isTyping, setIsTyping]     = useState(false);
 
-  const fileInputRef = useRef(null);
+  const fileInputRef    = useRef(null);
   const scrollAnchorRef = useRef(null);
+  const textareaRef     = useRef(null);
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -85,12 +97,12 @@ export default function ChatAssistant({ onBack }) {
     event.target.value = '';
   }
 
-  async function handleSend() {
-    const trimmed = inputText.trim();
-    if (!trimmed && !pendingImage) return;
+  async function handleSend(overrideText) {
+    const text = (overrideText ?? inputText).trim();
+    if (!text && !pendingImage) return;
 
     const imageFile = pendingImage?.file ?? null;
-    setMessages((prev) => [...prev, createMessage('user', trimmed, pendingImage?.previewUrl)]);
+    setMessages((prev) => [...prev, createMessage('user', text, pendingImage?.previewUrl)]);
     setInputText('');
     setPendingImage(null);
     setIsTyping(true);
@@ -98,14 +110,14 @@ export default function ChatAssistant({ onBack }) {
     let replyText;
     try {
       if (imageFile) {
-        const raw = await identifyPlant(imageFile);
+        const raw    = await identifyPlant(imageFile);
         const parsed = formatPrediction(raw);
         replyText = parsed.isHealthy
-          ? `Buenas noticias: la hoja de ${parsed.crop} se ve sana (confianza ${parsed.confidencePct}%).`
-          : `He analizado la imagen. Parece una hoja de ${parsed.crop} con ${parsed.condition} (confianza ${parsed.confidencePct}%).`;
+          ? `¡Buenas noticias! La hoja de **${parsed.crop}** se ve sana (confianza ${parsed.confidencePct}%).`
+          : `He analizado la imagen. Parece una hoja de **${parsed.crop}** con *${parsed.condition}* (confianza ${parsed.confidencePct}%).`;
       } else {
         replyText =
-          'Por ahora solo puedo analizar fotos de hojas de tomate, papa o pimiento. Adjunta una imagen con el icono de camara y te dire que encuentro.';
+          'Por ahora solo puedo analizar fotos de hojas de tomate, papa o pimiento. Adjunta una imagen con el ícono de cámara y te diré qué encuentro.';
       }
     } catch (error) {
       replyText = `No pude analizar la imagen: ${error.message}`;
@@ -122,35 +134,61 @@ export default function ChatAssistant({ onBack }) {
     }
   }
 
+  const hasOnlyWelcome = messages.length === 1;
+
   return (
-    <div className="mx-auto flex h-[calc(100vh-4rem)] w-full max-w-md flex-col lg:h-[calc(100vh-4rem)] lg:max-w-2xl">
-      <header className="flex items-center justify-between border-b border-gray-100 px-4 py-3 lg:rounded-t-2xl lg:border lg:bg-white">
-        <button type="button" onClick={onBack} className="rounded-full p-2 text-gray-500 hover:bg-gray-100" aria-label="Volver">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-base font-bold text-forest-700">Plant AI Assistant</h1>
-        <button type="button" className="rounded-full p-2 text-gray-400 hover:bg-gray-100" aria-label="Informacion">
-          <Info size={20} />
+    <div className="mx-auto flex w-full max-w-2xl flex-col page-enter" style={{ height: 'calc(100vh - 4rem)' }}>
+      {/* Header */}
+      <header className="flex shrink-0 items-center gap-3 border-b border-gray-100 bg-white px-4 py-3 lg:rounded-t-2xl lg:border lg:shadow-sm">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-600 shadow-sm">
+          <Bot size={18} className="text-white" />
+        </div>
+        <div className="flex-1">
+          <h1 className="text-sm font-bold text-forest-700">Plant AI Assistant</h1>
+          <p className="text-[11px] text-forest-500">Identificación inteligente de cultivos</p>
+        </div>
+        <button type="button" className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600" aria-label="Información">
+          <Info size={18} />
         </button>
       </header>
 
-      <div className="no-scrollbar flex-1 space-y-4 overflow-y-auto bg-gray-50/60 px-4 py-4 lg:border-x lg:bg-gray-50">
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))}
-        {isTyping && <TypingBubble />}
-        <div ref={scrollAnchorRef} />
+      {/* Messages */}
+      <div className="no-scrollbar flex-1 overflow-y-auto bg-gray-50/60 px-4 py-4 lg:border-x lg:border-gray-100 lg:bg-gray-50">
+        <div className="space-y-4">
+          {messages.map((message) => (
+            <MessageBubble key={message.id} message={message} />
+          ))}
+          {isTyping && <TypingBubble />}
+          <div ref={scrollAnchorRef} />
+        </div>
+
+        {/* Suggestion chips — only shown when no user message yet */}
+        {hasOnlyWelcome && !isTyping && (
+          <div className="mt-6 flex flex-wrap gap-2">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => handleSend(s)}
+                className="rounded-full border border-forest-200 bg-white px-3 py-1.5 text-xs font-medium text-forest-700 shadow-sm transition-all duration-200 hover:border-forest-400 hover:bg-forest-50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="border-t border-gray-100 bg-white px-3 py-3 lg:rounded-b-2xl lg:border lg:border-t-0">
+      {/* Input bar */}
+      <div className="shrink-0 border-t border-gray-100 bg-white px-4 py-3 lg:rounded-b-2xl lg:border lg:border-t-0 lg:shadow-sm">
         {pendingImage && (
-          <div className="mb-2 flex items-center gap-2 rounded-xl border border-forest-100 bg-forest-50 px-2 py-2">
+          <div className="mb-3 flex items-center gap-2 rounded-xl border border-forest-100 bg-forest-50 px-3 py-2">
             <img src={pendingImage.previewUrl} alt="Imagen adjunta" className="h-10 w-10 rounded-lg object-cover" />
             <span className="flex-1 truncate text-xs text-gray-500">Imagen lista para enviar</span>
             <button
               type="button"
               onClick={() => setPendingImage(null)}
-              className="rounded-full p-1 text-gray-400 hover:bg-gray-100"
+              className="rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600"
               aria-label="Quitar imagen"
             >
               <X size={14} />
@@ -162,7 +200,7 @@ export default function ChatAssistant({ onBack }) {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="shrink-0 rounded-full p-2.5 text-gray-500 transition-colors hover:bg-gray-100"
+            className="shrink-0 rounded-full p-2.5 text-gray-500 transition-all duration-200 hover:bg-forest-50 hover:text-forest-600 hover:scale-105"
             aria-label="Adjuntar foto"
           >
             <Camera size={20} />
@@ -170,19 +208,20 @@ export default function ChatAssistant({ onBack }) {
           <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelected} />
 
           <textarea
+            ref={textareaRef}
             rows={1}
             value={inputText}
-            onChange={(event) => setInputText(event.target.value)}
+            onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe or ask..."
-            className="max-h-24 flex-1 resize-none rounded-full border border-gray-200 px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-forest-400 focus:ring-2 focus:ring-forest-100"
+            placeholder="Describe o pregunta sobre tus plantas…"
+            className="max-h-24 flex-1 resize-none rounded-full border border-gray-200 px-4 py-2.5 text-sm text-gray-700 outline-none transition-all duration-200 focus:border-forest-400 focus:ring-2 focus:ring-forest-100"
           />
 
           <button
             type="button"
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!inputText.trim() && !pendingImage}
-            className="shrink-0 rounded-full bg-forest-600 p-2.5 text-white transition-colors hover:bg-forest-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="shrink-0 rounded-full bg-forest-600 p-2.5 text-white shadow-sm transition-all duration-200 hover:bg-forest-700 hover:shadow-md hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:shadow-none"
             aria-label="Enviar mensaje"
           >
             <Send size={18} />
