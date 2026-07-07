@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Camera, Send, User, X, Bot, Trash2 } from 'lucide-react';
 import { identifyPlant, formatPrediction } from '../lib/api';
 import { getChatMessages, saveChatMessages, clearChatMessages, fileToCompressedDataUrl } from '../lib/storage';
+import { answerQuestion, fallbackAnswer, buildDiagnosisReply } from '../lib/plantAssistant';
 
 function nowLabel() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -16,6 +17,20 @@ function welcomeMessage() {
     'assistant',
     '¡Hola! Soy tu Asistente de Plantas. Envíame una foto de una hoja o hazme una pregunta sobre tus cultivos.',
   );
+}
+
+/** Parser minimo de **negrita** y *cursiva* para las respuestas del asistente. */
+function formatRichText(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return <em key={index}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
 }
 
 function MessageBubble({ message }) {
@@ -38,7 +53,7 @@ function MessageBubble({ message }) {
               : 'rounded-tl-sm border border-gray-100 bg-white text-gray-700'
           }`}
         >
-          {message.text && <p>{message.text}</p>}
+          {message.text && <p className="whitespace-pre-line">{formatRichText(message.text)}</p>}
           {message.imageUrl && (
             <img
               src={message.imageUrl}
@@ -140,12 +155,9 @@ export default function ChatAssistant({ onBack }) {
       if (imageFile) {
         const raw    = await identifyPlant(imageFile);
         const parsed = formatPrediction(raw);
-        replyText = parsed.isHealthy
-          ? `¡Buenas noticias! La hoja de **${parsed.crop}** se ve sana (confianza ${parsed.confidencePct}%).`
-          : `He analizado la imagen. Parece una hoja de **${parsed.crop}** con *${parsed.condition}* (confianza ${parsed.confidencePct}%).`;
+        replyText = buildDiagnosisReply(raw.predicted_class, parsed);
       } else {
-        replyText =
-          'Por ahora solo puedo analizar fotos de hojas de tomate, papa o pimiento. Adjunta una imagen con el ícono de cámara y te diré qué encuentro.';
+        replyText = answerQuestion(text) ?? fallbackAnswer();
       }
     } catch (error) {
       replyText = `No pude analizar la imagen: ${error.message}`;
