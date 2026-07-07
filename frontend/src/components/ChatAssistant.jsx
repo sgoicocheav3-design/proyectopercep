@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Info, Leaf, Send, User, X, Bot } from 'lucide-react';
+import { Camera, Send, User, X, Bot, Trash2 } from 'lucide-react';
 import { identifyPlant, formatPrediction } from '../lib/api';
+import { getChatMessages, saveChatMessages, clearChatMessages, fileToCompressedDataUrl } from '../lib/storage';
 
 function nowLabel() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -8,6 +9,13 @@ function nowLabel() {
 
 function createMessage(role, text, imageUrl) {
   return { id: crypto.randomUUID(), role, text, imageUrl, time: nowLabel() };
+}
+
+function welcomeMessage() {
+  return createMessage(
+    'assistant',
+    '¡Hola! Soy tu Asistente de Plantas. Envíame una foto de una hoja o hazme una pregunta sobre tus cultivos.',
+  );
 }
 
 function MessageBubble({ message }) {
@@ -72,12 +80,10 @@ const SUGGESTIONS = [
 ];
 
 export default function ChatAssistant({ onBack }) {
-  const [messages, setMessages] = useState([
-    createMessage(
-      'assistant',
-      '¡Hola! Soy tu Asistente de Plantas. Envíame una foto de una hoja o hazme una pregunta sobre tus cultivos.',
-    ),
-  ]);
+  const [messages, setMessages] = useState(() => {
+    const stored = getChatMessages();
+    return stored.length > 0 ? stored : [welcomeMessage()];
+  });
   const [inputText, setInputText]   = useState('');
   const [pendingImage, setPendingImage] = useState(null);
   const [isTyping, setIsTyping]     = useState(false);
@@ -89,6 +95,16 @@ export default function ChatAssistant({ onBack }) {
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    saveChatMessages(messages);
+  }, [messages]);
+
+  function handleClearChat() {
+    const fresh = [welcomeMessage()];
+    setMessages(fresh);
+    clearChatMessages();
+  }
 
   function handleFileSelected(event) {
     const file = event.target.files?.[0];
@@ -102,7 +118,19 @@ export default function ChatAssistant({ onBack }) {
     if (!text && !pendingImage) return;
 
     const imageFile = pendingImage?.file ?? null;
-    setMessages((prev) => [...prev, createMessage('user', text, pendingImage?.previewUrl)]);
+
+    // Convertimos a un data URL comprimido para poder persistir el mensaje
+    // (el blob: URL de la vista previa no sobrevive a un refresh de pagina).
+    let persistedImageUrl = null;
+    if (imageFile) {
+      try {
+        persistedImageUrl = await fileToCompressedDataUrl(imageFile);
+      } catch {
+        persistedImageUrl = pendingImage.previewUrl;
+      }
+    }
+
+    setMessages((prev) => [...prev, createMessage('user', text, persistedImageUrl)]);
     setInputText('');
     setPendingImage(null);
     setIsTyping(true);
@@ -147,8 +175,14 @@ export default function ChatAssistant({ onBack }) {
           <h1 className="text-sm font-bold text-forest-700">Plant AI Assistant</h1>
           <p className="text-[11px] text-forest-500">Identificación inteligente de cultivos</p>
         </div>
-        <button type="button" className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600" aria-label="Información">
-          <Info size={18} />
+        <button
+          type="button"
+          onClick={handleClearChat}
+          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-500"
+          aria-label="Vaciar conversación"
+          title="Vaciar conversación"
+        >
+          <Trash2 size={18} />
         </button>
       </header>
 

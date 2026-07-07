@@ -29,6 +29,16 @@ export async function identifyPlant(file) {
   return response.json();
 }
 
+/** Ping a GET /health. Devuelve true/false, nunca lanza. */
+export async function checkHealth() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/health`);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Traduce el nombre crudo de clase del modelo (ej. "Tomato_Early_blight" o
  * "Pepper__bell___Bacterial_spot") a algo presentable en la UI.

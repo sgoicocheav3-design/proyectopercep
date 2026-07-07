@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
-import { Camera, ChevronDown, Image as ImageIcon, Leaf, Loader2, HeartPulse, UploadCloud } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Camera, ChevronDown, Image as ImageIcon, Leaf, Loader2, HeartPulse, UploadCloud, CheckCircle2 } from 'lucide-react';
 import { identifyPlant, formatPrediction } from '../lib/api';
+import { addHistoryEntry, fileToCompressedDataUrl } from '../lib/storage';
 
 const CROP_OPTIONS = [
   { value: 'auto',   label: 'Todos los cultivos' },
@@ -50,6 +51,10 @@ export default function PlantIdentifier() {
   const galleryInputRef = useRef(null);
   const cameraInputRef  = useRef(null);
 
+  // Revoca el object URL anterior al reemplazarlo o al desmontar, para no
+  // acumular blobs en memoria.
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+
   function handleFileSelected(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -67,8 +72,26 @@ export default function PlantIdentifier() {
     setErrorMessage('');
     try {
       const raw = await identifyPlant(imageFile);
-      setResult(formatPrediction(raw));
+      const parsed = formatPrediction(raw);
+      setResult(parsed);
       setStatus('done');
+
+      try {
+        const imageDataUrl = await fileToCompressedDataUrl(imageFile);
+        addHistoryEntry({
+          id: crypto.randomUUID(),
+          crop: parsed.crop,
+          condition: parsed.condition,
+          isHealthy: parsed.isHealthy,
+          confidencePct: parsed.confidencePct,
+          cropTypeSelected: cropType,
+          imageUrl: imageDataUrl,
+          date: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }),
+          timestamp: Date.now(),
+        });
+      } catch (storageError) {
+        console.warn('No se pudo guardar el analisis en el historial:', storageError);
+      }
     } catch (error) {
       setErrorMessage(error.message);
       setStatus('error');
@@ -217,6 +240,11 @@ export default function PlantIdentifier() {
               <div className={`mt-4 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium ${result.isHealthy ? 'bg-forest-50 text-forest-700' : 'bg-amber-50 text-amber-700'}`}>
                 <span>{result.isHealthy ? '✅' : '⚠️'}</span>
                 <span>{result.isHealthy ? 'Planta saludable' : 'Se recomienda tratamiento'}</span>
+              </div>
+
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-gray-400">
+                <CheckCircle2 size={13} className="text-forest-400" />
+                Guardado en tu historial
               </div>
             </div>
           )}

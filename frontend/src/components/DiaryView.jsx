@@ -1,20 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Plus, X, Save, Loader2, FileText } from 'lucide-react';
-
-/** Skeleton line group */
-function SkeletonEntry() {
-  return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="skeleton h-4 w-1/2 rounded" />
-        <div className="skeleton h-3 w-16 rounded" />
-      </div>
-      <div className="skeleton h-3 w-full rounded" />
-      <div className="skeleton h-3 w-4/5 rounded" />
-      <div className="skeleton h-3 w-2/3 rounded" />
-    </div>
-  );
-}
+import { BookOpen, Plus, X, Save, Loader2, FileText, Trash2 } from 'lucide-react';
+import { addDiaryEntry, getDiaryEntries, removeDiaryEntry } from '../lib/storage';
 
 /** Empty state */
 function EmptyState({ onNewEntry }) {
@@ -129,7 +115,7 @@ function NewEntryModal({ onClose, onSave }) {
 }
 
 /** Single diary entry card */
-function EntryCard({ entry }) {
+function EntryCard({ entry, onDelete }) {
   const dateStr = new Date(entry.timestamp).toLocaleDateString('es-ES', {
     year: 'numeric', month: 'short', day: 'numeric',
   });
@@ -139,7 +125,17 @@ function EntryCard({ entry }) {
     <div className="group rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
       <div className="mb-2 flex items-start justify-between gap-3">
         <h3 className="text-sm font-semibold text-gray-800 leading-snug">{entry.title}</h3>
-        <span className="shrink-0 text-xs text-gray-400 whitespace-nowrap">{dateStr} · {timeStr}</span>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="text-xs text-gray-400 whitespace-nowrap">{dateStr} · {timeStr}</span>
+          <button
+            type="button"
+            onClick={() => onDelete(entry.id)}
+            className="rounded-full p-1.5 text-gray-300 opacity-0 transition-all duration-200 hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+            aria-label="Eliminar entrada"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
       {entry.body && (
         <p className="text-sm leading-relaxed text-gray-500 line-clamp-3">{entry.body}</p>
@@ -149,21 +145,17 @@ function EntryCard({ entry }) {
 }
 
 export default function DiaryView() {
-  const [loading, setLoading]         = useState(true);
-  const [entries, setEntries]         = useState([]);
-  const [showModal, setShowModal]     = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 1500);
-    return () => clearTimeout(t);
-  }, []);
+  const [entries, setEntries] = useState(() => getDiaryEntries());
+  const [showModal, setShowModal] = useState(false);
 
   function handleSave(data) {
-    setEntries((prev) => [
-      { id: crypto.randomUUID(), ...data, timestamp: Date.now() },
-      ...prev,
-    ]);
+    const list = addDiaryEntry({ id: crypto.randomUUID(), ...data, timestamp: Date.now() });
+    setEntries(list);
     setShowModal(false);
+  }
+
+  function handleDelete(id) {
+    setEntries(removeDiaryEntry(id));
   }
 
   return (
@@ -175,7 +167,7 @@ export default function DiaryView() {
             <h1 className="text-lg font-bold text-forest-700 lg:text-2xl">Diario</h1>
             <p className="text-xs text-gray-400 mt-0.5">Tus observaciones de campo</p>
           </div>
-          {!loading && entries.length > 0 && (
+          {entries.length > 0 && (
             <button
               type="button"
               onClick={() => setShowModal(true)}
@@ -188,17 +180,13 @@ export default function DiaryView() {
         </header>
 
         {/* Content */}
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((n) => <SkeletonEntry key={n} />)}
-          </div>
-        ) : entries.length === 0 ? (
+        {entries.length === 0 ? (
           <EmptyState onNewEntry={() => setShowModal(true)} />
         ) : (
           <ul className="space-y-4">
             {entries.map((entry) => (
               <li key={entry.id}>
-                <EntryCard entry={entry} />
+                <EntryCard entry={entry} onDelete={handleDelete} />
               </li>
             ))}
           </ul>
@@ -206,7 +194,7 @@ export default function DiaryView() {
       </div>
 
       {/* FAB (only when there are entries) */}
-      {!loading && entries.length > 0 && (
+      {entries.length > 0 && (
         <button
           type="button"
           onClick={() => setShowModal(true)}
