@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-forest-50: #f1f8f2;
+  --color-forest-100: #e1f0e3;
+  --color-forest-200: #c3e2c8;
+  --color-forest-300: #98cca2;
+  --color-forest-400: #69af78;
+  --color-forest-500: #458c57;
+  --color-forest-600: #347044;
+  --color-forest-700: #2a5837;
+  --color-forest-800: #22462c;
+  --color-forest-900: #1b3823;
+
+  --color-accent-500: #7c5ce0;
+  --color-accent-600: #6d4cd6;
+}
+
+body {
+  @apply bg-gray-50 text-gray-800 antialiased;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

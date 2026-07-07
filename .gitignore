@@ -1,0 +1,38 @@
+# Datos e imagenes (pesan demasiado para versionar)
+data/raw/
+data/interim/
+data/processed/
+
+# Modelos entrenados
+# (models/saved_model/ SI se versiona: es el artefacto de inferencia que
+# necesita el backend para el deploy)
+models/checkpoints/
+models/evaluation/
+models/_local_test/
+data/_local_test/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.venv-wsl/
+venv/
+
+# Spark / Hadoop
+spark-warehouse/
+metastore_db/
+derby.log
+.hadoop/
+
+# Kaggle credentials
+kaggle.json
+
+# Entorno / IDE
+.env
+.vscode/
+.claude/
+
+# Frontend (React + Vite)
+frontend/node_modules/
+frontend/dist/

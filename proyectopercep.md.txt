@@ -1,0 +1,545 @@
+<!-- Fuente documental: PLAN DE PROYECTO PERCEPCION COMPUTACIONAL.docx :contentReference[oaicite:0]{index=0} -->
+
+# UNIVERSIDAD PRIVADA ANTENOR ORREGO
+
+## FACULTAD DE INGENIERÍA
+
+## ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMAS E INTELIGENCIA ARTIFICIAL
+
+
+La imagen corresponde al logotipo oficial de la **Universidad Privada Antenor Orrego**. Visualmente presenta un sello circular/ovalado en color azul sobre fondo transparente o claro. En el contorno del emblema se lee el texto institucional **“UNIVERSIDAD PRIVADA ANTENOR ORREGO”** y, en la parte inferior del borde, la frase **“ASCENDIT ALTIUS”**. En el centro aparece una figura humana estilizada sosteniendo una antorcha, símbolo asociado al conocimiento, la educación y el progreso académico. La imagen funciona como elemento de identificación institucional en la carátula del documento, vinculando formalmente el proyecto con la UPAO.
+
+# Sistema de detección de enfermedades en plantas a partir de fotografías mediante técnicas de IA
+
+**Curso:** Percepción Computacional
+
+**Integrantes:**
+
+- Barreto Houghton, Gabriel
+- Chavez Vargas, John Marlon
+- Goicochea Vargas, Stefano Rosel
+- Solano Perez, Gabriel Alejandro
+
+**Docente:** Ing. Caballero Alvarado, Armando Javier
+
+**Semestre:** 2026 - 10
+
+**Lugar:** Trujillo - Perú
+
+---
+
+# ÍNDICE
+
+| N.º | Sección | Página |
+|---:|---|---:|
+| 1 | RESUMEN EJECUTIVO | 2 |
+| 2 | INTRODUCCIÓN | 3 |
+| 2.1 | Contexto del Problema | 3 |
+| 2.2 | Objetivos | 3 |
+| 2.3 | Hipótesis | 4 |
+| 3 | ADQUISICIÓN Y PREPROCESAMIENTO DE DATOS | 4 |
+| 3.1 | Fuente de Datos | 4 |
+| 3.2 | Preprocesamiento | 5 |
+| 3.3 | Herramientas Utilizadas | 6 |
+| 4 | METODOLOGÍA: DESARROLLO DEL MODELO DE PERCEPCIÓN | 7 |
+| 4.1 | Modelo Base (Baseline Clásico) | 7 |
+| 4.2 | Arquitectura del Modelo Avanzado | 7 |
+| 4.3 | Proceso de Entrenamiento y Creación del Modelo Final | 9 |
+| 5 | RESULTADOS DEL MODELO | 10 |
+| 5.1 | Métricas de Rendimiento | 10 |
+| 5.2 | Visualizaciones | 13 |
+| 6 | CONCLUSIONES | 15 |
+| 6.1 | Logros Alcanzados | 15 |
+| 6.2 | Impacto y Beneficios | 15 |
+| 6.3 | Mejoras Futuras | 16 |
+| 7 | ANEXOS TÉCNICOS | 16 |
+| 8 | REFERENCIAS | 17 |
+
+---
+
+# 1. RESUMEN EJECUTIVO
+
+El proyecto desarrolla un sistema de percepción computacional para la detección temprana de enfermedades en plantas, utilizando técnicas de inteligencia artificial y aprendizaje automático. El objetivo es automatizar un proceso que tradicionalmente depende de inspección manual, reduciendo errores y permitiendo un diagnóstico rápido y confiable. Para ello, se implementó un modelo basado en una **Red Neuronal Convolucional (CNN)** entrenada con **Transfer Learning (MobileNetV2)**, complementada con un pipeline distribuido sobre **Apache Spark** y entrenamiento paralelo mediante **Horovod** en un clúster de tres nodos. Esta arquitectura permite manejar grandes volúmenes de datos (**Big Data**) y acelerar significativamente los tiempos de entrenamiento sin comprometer la precisión.
+
+El sistema analiza imágenes de hojas capturadas con dispositivos móviles, clasificando **15 tipos de enfermedades** con una precisión superior al **95%**. Se implementó como una **API REST contenerizada con Docker**, lo que facilita su integración en aplicaciones agrícolas y garantiza disponibilidad y escalabilidad en entornos productivos. Este enfoque no solo permite una intervención temprana para la mitigación de pérdidas económicas, sino que también contribuye a la sostenibilidad agrícola al reducir la dependencia de inspecciones manuales y el uso excesivo de agroquímicos.
+
+---
+
+# 2. INTRODUCCIÓN
+
+## 2.1. Contexto del Problema
+
+Las enfermedades en cultivos representan una de las principales amenazas para la seguridad alimentaria a nivel global, causando pérdidas que pueden llegar hasta el **40% de la producción anual**. La detección tradicional depende de expertos fitopatólogos que inspeccionan visualmente las hojas, un proceso propenso a errores y sujeto a variabilidad humana, con tasas de falla de entre el **15% y 20%**. Además, este método es costoso y poco escalable, especialmente en zonas rurales o con acceso limitado a especialistas, lo que retrasa intervenciones que podrían evitar pérdidas significativas.
+
+La percepción computacional y el aprendizaje profundo se presentan como soluciones viables y escalables. La automatización del análisis de imágenes foliares mediante **CNN** permite procesar grandes volúmenes de datos con alta precisión (**>95%**), superando la capacidad humana promedio. Integrar técnicas de procesamiento distribuido con **Apache Spark** y entrenamiento paralelo mediante **Horovod** no solo garantiza un análisis rápido, sino que también aborda los desafíos de escalabilidad y eficiencia, haciendo posible la aplicación del sistema en entornos agrícolas reales con múltiples usuarios y dispositivos.
+
+## 2.2. Objetivos
+
+Desarrollar un sistema distribuido capaz de clasificar patologías vegetales con alta eficiencia.
+
+- **Objetivo de Modelo:** Implementar una **Red Neuronal Convolucional (CNN)** basada en **MobileNetV2** con **Transfer Learning** para clasificar **15 tipos de enfermedades vegetales** con precisión superior al **95%**. El modelo debe ser capaz de generalizar correctamente ante imágenes tomadas en diferentes condiciones de luz y posición, capturando características visuales complejas de cada patología.
+
+- **Objetivo de Sistema:** Configurar un pipeline distribuido con **Apache Spark** y **Horovod** sobre un clúster de tres nodos, reduciendo el tiempo de entrenamiento en un **50%** en comparación con un entorno de nodo único y permitiendo el procesamiento eficiente de datasets de gran tamaño almacenados en **HDFS**.
+
+- **Objetivo Práctico:** Operacionalizar el modelo mediante contenedores **Docker** y una **API REST**, permitiendo diagnósticos en tiempo real desde dispositivos móviles o aplicaciones agrícolas, con escalabilidad y alta disponibilidad para usuarios finales.
+
+## 2.3. Hipótesis
+
+Se plantea que el uso de entrenamiento distribuido con el algoritmo **Ring-AllReduce** permitirá reducir los tiempos de entrenamiento en un **50%** sin sacrificar la precisión, manteniéndola superior al **94%**. Además, la implementación de una **CNN** entrenada de manera distribuida sobre un clúster de tres nodos, combinada con un pipeline de procesamiento batch en **Spark** y almacenamiento en **HDFS**, garantizará eficiencia en la lectura y escritura de datos, mejorando el rendimiento general del sistema y la capacidad de manejar grandes volúmenes de imágenes de hojas para clasificación precisa.
+
+---
+
+# 3. ADQUISICIÓN Y PREPROCESAMIENTO DE DATOS
+
+## 3.1. Fuente de Datos
+
+El proyecto utiliza el dataset público **PlantVillage**, reconocido por su validez en investigación de enfermedades vegetales. Se seleccionó un subconjunto de **20,630 imágenes**, distribuidas en **15 clases representativas** de tres cultivos principales:
+
+- **Tomate:** 10 clases.
+- **Papa:** 3 clases.
+- **Pimiento:** 2 clases.
+
+Todas las imágenes fueron tomadas en condiciones controladas, con fondos uniformes, para que el modelo se concentre en las características relevantes de las hojas y no en el entorno. Este dataset se encuentra relativamente balanceado, lo que facilita un entrenamiento más estable y preciso del modelo **CNN**.
+
+Para asegurar la escalabilidad y eficiencia en el manejo de los datos, se almacenaron en un clúster **HDFS**, permitiendo un acceso distribuido y procesamiento paralelo mediante **Apache Spark**. Esta infraestructura garantiza que los pipelines de preprocesamiento y entrenamiento puedan ejecutarse de manera simultánea en múltiples nodos, optimizando tiempos y recursos computacionales, y preparando el sistema para un entorno productivo con grandes volúmenes de imágenes.
+
+## 3.2. Preprocesamiento
+
+El preprocesamiento consistió en varias etapas para estandarizar y optimizar las imágenes antes de alimentarlas al modelo:
+
+1. Todas las imágenes se redimensionaron a **256x256 píxeles**.
+2. Las imágenes se normalizaron al rango **[0,1]**, asegurando consistencia en la entrada del modelo.
+3. Se aplicaron técnicas de filtrado de ruido para eliminar artefactos y mejorar la calidad de los datos.
+4. Las imágenes se almacenaron en formato **Parquet**, reduciendo el espacio de almacenamiento y acelerando las operaciones de lectura/escritura hasta en un **60-70%**.
+
+Se realizó la división del dataset en tres subconjuntos:
+
+| Subconjunto | Porcentaje | Propósito |
+|---|---:|---|
+| Entrenamiento | 80% | Aprendizaje principal del modelo |
+| Validación | 10% | Ajuste de hiperparámetros durante el entrenamiento |
+| Pruebas | 10% | Evaluación objetiva de generalización |
+
+Esta división sigue las mejores prácticas de **Machine Learning**, ya que permite ajustar hiperparámetros durante el entrenamiento sin afectar el conjunto de prueba, garantizando una evaluación objetiva de la capacidad de generalización del modelo.
+
+Todo el preprocesamiento se ejecutó de forma distribuida en **Spark**, integrando pipelines **ETL** que optimizan la manipulación y transformación de los datos, preparando el sistema para un entrenamiento eficiente y reproducible.
+
+## 3.3. Herramientas Utilizadas
+
+### 3.3.1. Almacenamiento y Procesamiento
+
+- **Hadoop HDFS 3.3.4**
+- **Apache Spark 3.3.4**
+- **YARN (Resource Manager)**
+
+### 3.3.2. Deep Learning y Entrenamiento
+
+- **TensorFlow 2.x** con soporte GPU
+- **Horovod** para entrenamiento distribuido
+- **CUDA Toolkit** para aceleración GPU
+- **cuDNN**, biblioteca de operaciones GPU de NVIDIA
+
+### 3.3.3. Lenguajes y Librerías
+
+- **Python 3.9**
+- **NumPy**
+- **Pandas**
+- **OpenCV** para procesamiento de imágenes
+- **Pillow** para manipulación de imágenes
+
+### 3.3.4. Infraestructura
+
+- **Java JDK 8** para Hadoop
+- **OpenSSH** para comunicación entre nodos
+- **Windows 11** como sistema operativo base
+
+---
+
+# 4. METODOLOGÍA: DESARROLLO DEL MODELO DE PERCEPCIÓN
+
+## 4.1. Modelo Base (Baseline Clásico)
+
+Para establecer una línea base de desempeño, se implementó un pipeline clásico de visión por computadora. Se utilizó el descriptor **HOG (Histogram of Oriented Gradients)** para extraer características estructurales de las hojas y una **Máquina de Vectores de Soporte (SVM)** para la clasificación.
+
+Este enfoque alcanzó una precisión del **74.5%**, suficiente para justificar la transición hacia un modelo de **Deep Learning** más robusto. Aunque funcional, el método clásico no es escalable ni resistente a variaciones de iluminación o posición de las hojas, limitando su aplicabilidad en entornos reales de campo.
+
+## 4.2. Arquitectura del Modelo Avanzado
+
+Se diseñó un modelo de **Red Neuronal Convolucional** inspirado en **MobileNetV2**, con capas convolucionales para extracción jerárquica de características, **BatchNormalization** para estabilizar el entrenamiento y capas **Dense** con activación **Softmax** para clasificar las **15 clases de enfermedades**.
+
+Se incorporaron capas de **Pooling** y **Dropout** para reducir dimensionalidad, prevenir sobreajuste y mejorar la capacidad de generalización. La entrada del modelo son imágenes **RGB de 256×256 píxeles**, y la arquitectura está optimizada para entrenamiento distribuido, garantizando escalabilidad y eficiencia en clústeres de **Big Data**.
+
+### 4.2.1. Estructura de la Red Neuronal
+
+- **Capas Convolucionales:** Extraen características jerárquicas de las imágenes, como bordes, texturas y patrones complejos.
+- **Capas de Pooling:** Reducen dimensionalidad espacial y aumentan invarianza a transformaciones.
+- **Capas Totalmente Conectadas:** Realizan la clasificación final basándose en las características extraídas.
+- **Capa de Salida:** Contiene **15 neuronas** con activación **Softmax**, una por cada clase de enfermedad.
+
+### 4.2.2. Diseño de la Arquitectura
+
+- **Input Layer:** Tamaño de entrada **256×256×3**, correspondiente a imágenes RGB de 256×256 píxeles.
+- **Bloques Convolucionales:** Cada bloque convolucional típicamente contiene:
+  - Capa **Conv2D** para extracción de características.
+  - Activación **ReLU** para incorporar no linealidad.
+  - **BatchNormalization** para estabilizar el entrenamiento.
+  - **MaxPooling2D** para reducción dimensional.
+- **Clasificador:**
+  - **GlobalAveragePooling2D**
+  - **Dropout** con probabilidad `p = 0.5` para regularización.
+  - **Dense** con 512 unidades + **ReLU**.
+  - **BatchNormalization**.
+  - **Dropout** con probabilidad `p = 0.3`.
+  - **Dense final** con 15 unidades + **Softmax**.
+
+### 4.2.3. Transfer Learning
+
+- **Ventajas:**
+  - **Capacidad de Generalización:** múltiples capas convolucionales capturan patrones en diferentes escalas.
+  - **Regularización:** Dropout previene el overfitting.
+  - **Estabilidad:** BatchNormalization acelera la convergencia y estabiliza el entrenamiento.
+  - **Escalabilidad:** arquitectura compatible con entrenamiento distribuido.
+
+- **Parámetros del Modelo:**
+  - **Total de parámetros entrenables:** varios millones, dependiendo de la configuración exacta de capas.
+  - **Clases de salida:** 15 enfermedades diferentes.
+
+**Diagrama de Arquitectura del Modelo:**
+
+### [Análisis de Imagen: Diagrama de arquitectura simplificada del sistema de detección de enfermedades en plantas]
+
+La imagen presenta un diagrama técnico de arquitectura del sistema. En la parte superior aparece el título **“DIAGRAMA DE ARQUITECTURA SIMPLIFICADA DEL SISTEMA DE DETECCIÓN DE ENFER EN PLANTAS”**. El texto parece estar truncado en la palabra “enfermedades”, mostrándose visualmente como **“ENFER”**. El diagrama está organizado en bloques conectados por flechas, explicando la evolución desde un modelo clásico hasta un modelo avanzado basado en **MobileNetV2**.
+
+En la zona superior izquierda se muestra el **Modelo Base (Baseline Clásico)**. Este flujo inicia con una imagen de hoja etiquetada como **“[H Leaf Image (256x256)]”**. La imagen pasa a un bloque llamado **“HOG Descriptor (Extracción de Características)”**, luego a un bloque **“Linear SVM Classifier”**, y finalmente llega a un bloque de resultado que indica **“Precisión ~74.5%”**. Este tramo explica visualmente que el modelo clásico usa extracción manual de características mediante HOG y clasificación con SVM.
+
+En la zona superior derecha aparece un recuadro titulado **“CONTEXTO Y JUSTIFICACIÓN”**, que compara el rendimiento entre el modelo base y el modelo avanzado:
+
+| Modelo | Precisión |
+|---|---:|
+| Modelo Base (HOG+SVM) | ~74.5% |
+| Modelo Avanzado (CNN-MobileNetV2) | >94.10% |
+
+Una flecha grande apunta desde la comparación superior hacia la arquitectura avanzada, indicando la transición conceptual desde el baseline clásico hacia el enfoque de Deep Learning.
+
+La sección central está titulada **“ARQUITECTURA DEL MODELO AVANZADO (Basado en MobileNetV2)”**. A la izquierda aparece el **Input Layer**, con una imagen de hoja y el texto **“[256x256x3 RGB]”**, lo que representa la entrada del modelo: imágenes RGB de 256 por 256 píxeles y tres canales de color.
+
+Después del input, el flujo avanza hacia el **Extractor de Características**, identificado como **“Base MobileNetV2 Pre-entrenada”**. Este extractor está dividido en tres bloques principales:
+
+1. **Bloques Convolucionales Iniciales**
+   - Descritos como bloques que detectan características simples, especialmente **bordes**.
+2. **Bloques Convolucionales Medios**
+   - Descritos como bloques que reconocen **formas**.
+3. **Bloques Convolucionales Finales**
+   - Descritos como bloques que identifican **patrones** más complejos.
+
+Debajo del extractor aparece un bloque naranja llamado **“GlobalAveragePooling2D”**, que reduce las características extraídas por la red convolucional antes de enviarlas al clasificador.
+
+La parte inferior central contiene el **“BLOQUE CLASIFICADOR (Totalmente Conectado y Regularizado)”**. El flujo de este bloque es el siguiente:
+
+1. **Dropout (0.5)**
+2. **Dense Layer (512, ReLU)**
+3. **BatchNormalization**
+4. **Dropout (0.3)**
+5. **Dense Final (15 units, Softmax)**
+
+Este bloque explica cómo la red transforma las características visuales extraídas en una predicción final de clase. El uso de Dropout y BatchNormalization se asocia con la regularización y estabilidad del entrenamiento.
+
+En la parte inferior izquierda aparece la **“SALIDA DE CLASIFICACIÓN”**, representada por una fila de barras verticales de colores, cada una asociada a una clase de enfermedad. Aunque parte del texto es pequeño y está rotado, se observan clases relacionadas con enfermedades de tomate, papa y pimiento, como:
+
+- Tizón temprano de tomate.
+- Tizón tardío de papa.
+- Tizón tardío de tomate.
+- Moho de hoja.
+- Mancha bacteriana.
+- Hoja sana.
+- Virus o enfermedades virales.
+- Clases sanas y enfermas de papa, tomate y pimiento.
+
+A la derecha del diagrama aparece un panel de **“VENTAJAS”** que lista:
+
+- Capacidad de Generalización.
+- Regularización.
+- Estabilidad.
+- Escalabilidad.
+
+Debajo también se indica:
+
+- **Parámetros entrenables:** varios millones.
+- **Precisión de validación:** ~94.10%.
+
+En la parte inferior derecha hay un recuadro de **“RESUMEN DE MODELO AVANZADO”**, que vuelve a resaltar:
+
+- **Ventajas:** capacidad de generalización, regularización mediante Dropout, estabilidad mediante BatchNorm y escalabilidad.
+- **Parámetros entrenables:** millones.
+- **Precisión de validación:** ~94.10%.
+
+El propósito de esta imagen dentro del documento es explicar visualmente por qué se abandona el enfoque clásico **HOG + SVM** y se adopta una arquitectura moderna basada en **CNN-MobileNetV2**, destacando la mejora de precisión, la reutilización de pesos preentrenados y la capacidad de escalamiento mediante entrenamiento distribuido.
+
+## 4.3. Proceso de Entrenamiento y Creación del Modelo Final
+
+El entrenamiento se realizó en un clúster de tres nodos con GPUs, usando **Horovod** y el algoritmo **Ring-AllReduce** para sincronización eficiente de gradientes. Cada GPU procesó batches de **32 imágenes**, resultando en un batch efectivo de **96**, y se planificaron **20 épocas**, deteniéndose en la cuarta debido a la rápida convergencia del modelo.
+
+La función de pérdida fue **CategoricalCrossentropy**, y se utilizó **Adam** como optimizador. Esta configuración permitió reducir los tiempos de entrenamiento en aproximadamente **50%** comparado con un nodo único, sin comprometer la precisión del modelo.
+
+El modelo final se obtuvo a través del siguiente proceso de entrenamiento:
+
+- **Framework de Entrenamiento:** Se utilizó la integración de **Spark + Horovod**, permitiendo que el entrenamiento se ejecute de forma distribuida sobre **YARN** como gestor de recursos.
+
+- **Arquitectura del Modelo:** Se implementó **MobileNetV2**, empleando la técnica de **Transfer Learning** para aprovechar el pre-entrenamiento de la red y acelerar la extracción de características.
+
+- **Hardware Utilizado:** Se realizó en un clúster distribuido de 3 nodos:
+  - **Nodo Maestro:** `192.168.0.111` con 1 GPU.
+  - **Nodos Workers:** `192.168.0.109` y `192.168.0.110`, con 2 GPUs adicionales.
+  - **Memoria:** se asignaron **6GB de RAM por executor** para garantizar la carga fluida de los lotes de imágenes desde **HDFS**.
+
+- **Hiperparámetros Clave:**
+  - **Optimizador:** Adam (**Adaptive Moment Estimation**), responsable de la actualización dinámica de los pesos.
+  - **Tasa de Aprendizaje (Learning Rate):** `0.001`.
+  - **Batch Size:** batch de 32 muestras por GPU, resultando en un batch size efectivo de 96.
+  - **Número de Épocas:** aunque se planificaron 20 épocas, el proceso se detuvo en la época 4 debido a una convergencia temprana y robusta.
+  - **Función de Pérdida (Loss Function):** CategoricalCrossentropy, utilizada para minimizar el error en la clasificación multi-clase.
+
+---
+
+# 5. RESULTADOS DEL MODELO
+
+El modelo **MobileNetV2** entrenado de forma distribuida mostró una convergencia rápida, alcanzando precisión de **95.23%** en validación en solo **4 épocas**, con una pérdida de **0.4907**. La matriz de confusión reveló una diagonal dominante, confirmando alta precisión en la clasificación de las **15 patologías vegetales**, con confusiones marginales entre enfermedades similares como **Tomato Early Blight** y **Late Blight**.
+
+Las curvas de pérdida y precisión mostraron crecimiento estable sin signos de sobreajuste, garantizando que el modelo generaliza correctamente ante imágenes nuevas. Se evaluaron ejemplos prácticos de inferencia: el sistema identifica correctamente hojas sanas y enfermas, con errores mínimos en lesiones incipientes. Estos resultados confirman que el pipeline distribuido con **Spark** y **Horovod**, junto con la arquitectura **MobileNetV2**, permite procesar grandes volúmenes de imágenes de manera escalable y eficiente, cumpliendo los objetivos de precisión y robustez establecidos en el proyecto.
+
+## Métricas de Rendimiento
+
+El modelo **MobileNetV2** alcanzó una convergencia óptima en solo **4 épocas de entrenamiento**, mostrando una rápida adaptación a los patrones de las **15 clases de enfermedades foliares**. La precisión global en el conjunto de validación fue del **95.23%**, con una pérdida (**loss**) de **0.4907**, lo que confirma que el modelo aprendió de manera efectiva sin sobreajustarse a los datos de entrenamiento.
+
+La matriz de confusión presenta una diagonal dominante, indicando que la mayoría de las predicciones fueron correctas. Únicamente se observa una confusión marginal entre enfermedades similares, como **Tomato Early Blight** y **Late Blight**, debido a la similitud en los patrones necróticos de las lesiones.
+
+Además, el reporte por épocas (**logs de entrenamiento**) evidencia una mejora progresiva en la precisión y reducción de la pérdida desde la primera hasta la cuarta época, demostrando la eficiencia del entrenamiento distribuido y la correcta selección de hiperparámetros y técnicas de regularización. Esto confirma que el modelo es capaz de generalizar bien ante nuevas imágenes, incluso en condiciones de iluminación o ángulo distintos a los del dataset de entrenamiento.
+
+| Modelo | Accuracy (Validación) | Pérdida (Loss) | Épocas |
+|---|---:|---:|---:|
+| MobileNetV2 (Propuesto) | 95.23% | 0.4907 | 4 |
+
+### Matriz de Confusión:
+
+### [Análisis de Imagen: Visualización de detecciones fallidas]
+
+La imagen corresponde a una visualización titulada **“Detecciones Fallidas”**. En la parte superior se muestran dos datos generales:
+
+- **Total de ejemplos en esta categoría:** 210.
+- **Precisión General del Modelo:** 89.88%.
+
+Visualmente, la imagen está organizada como una cuadrícula de **3 columnas por 3 filas**, con un total de **9 ejemplos de clasificación errónea**. Cada ejemplo contiene una fotografía de una hoja y, sobre ella, una franja negra con texto blanco que indica la clase predicha por el modelo (**Pred**) y la clase real (**Real**).
+
+Los ejemplos muestran principalmente hojas de tomate y pimiento sobre fondos uniformes grisáceos o neutros. Algunas hojas presentan síntomas leves o zonas afectadas pequeñas, lo que puede explicar la dificultad del modelo para clasificarlas correctamente.
+
+Transcripción de los textos visibles por ejemplo:
+
+1. **Ejemplo superior izquierdo**
+   - `Pred: Pepper bell healthy`
+   - `Real: Pepper bell Bacterial spo...`
+   - La clase real aparece truncada visualmente, pero corresponde a una enfermedad bacteriana en pimiento. La hoja parece verde y relativamente sana, lo cual pudo inducir al modelo a predecir “healthy”.
+
+2. **Ejemplo superior central**
+   - `Pred: Tomato Tomato mosaic`
+   - `Real: Tomato Spider mites Two...`
+   - El texto real aparece truncado. La confusión se da entre un virus/mosaico del tomate y daño por ácaros tipo spider mites.
+
+3. **Ejemplo superior derecho**
+   - `Pred: Tomato Septoria leaf spo...`
+   - `Real: Potato Late blight`
+   - El texto predicho aparece truncado, pero apunta a **Tomato Septoria leaf spot**. El modelo confundió una hoja de papa con tizón tardío con una enfermedad foliar de tomate.
+
+4. **Ejemplo medio izquierdo**
+   - `Pred: Tomato Spider mites Two...`
+   - `Real: Tomato Leaf Mold`
+   - El modelo confundió daño por ácaros con moho foliar de tomate.
+
+5. **Ejemplo medio central**
+   - `Pred: Tomato healthy`
+   - `Real: Tomato Spider mites Two...`
+   - El modelo clasificó como sana una hoja que realmente presentaba daño por ácaros. Esto sugiere que los síntomas eran incipientes o poco evidentes.
+
+6. **Ejemplo medio derecho**
+   - `Pred: Tomato healthy`
+   - `Real: Tomato Target Spot`
+   - La hoja muestra manchas o decoloración, pero el modelo la clasificó como sana. Esto indica un error relevante en lesiones pequeñas o visualmente ambiguas.
+
+7. **Ejemplo inferior izquierdo**
+   - `Pred: Pepper bell healthy`
+   - `Real: Pepper bell Bacterial spo...`
+   - Nuevamente se observa una confusión entre pimiento sano y pimiento con mancha bacteriana.
+
+8. **Ejemplo inferior central**
+   - `Pred: Tomato healthy`
+   - `Real: Tomato Spider mites Two...`
+   - La imagen muestra una hoja con textura irregular y zonas amarillentas, pero el modelo la predijo como sana.
+
+9. **Ejemplo inferior derecho**
+   - `Pred: Pepper bell healthy`
+   - `Real: Pepper bell Bacterial spo...`
+   - Se repite la confusión entre hoja sana de pimiento y mancha bacteriana.
+
+El propósito de esta imagen es mostrar los casos en los que el modelo no clasificó correctamente. Sirve para identificar patrones de error, especialmente cuando las lesiones son pequeñas, poco contrastadas o visualmente parecidas a hojas sanas. También evidencia que algunas enfermedades de apariencia similar pueden ser confundidas por la CNN, lo cual justifica futuras mejoras como aumento de datos, imágenes de campo más variadas o técnicas de atención visual.
+
+### Reporte por Épocas:
+
+El documento incluye el rótulo **“Reporte por Épocas:”** como apartado de resultados, pero no presenta una tabla o imagen inmediatamente visible asociada a este subtítulo. El texto previo indica que los logs de entrenamiento muestran una mejora progresiva de la precisión y una reducción de la pérdida desde la primera hasta la cuarta época.
+
+## Visualizaciones
+
+Las curvas de aprendizaje muestran una reducción del **81.1%** en la función de pérdida y un crecimiento estable en la precisión, sin signos de sobreajuste (**overfitting**), lo que garantiza que el modelo puede generalizar ante imágenes no vistas.
+
+Los gráficos permiten visualizar claramente la estabilidad del entrenamiento y la efectividad de las técnicas de regularización aplicadas, como **Dropout** y **BatchNormalization**.
+
+Los ejemplos de inferencia muestran que el sistema identifica correctamente tanto hojas sanas como enfermas. Los pocos fallos detectados se concentran principalmente en lesiones incipientes, donde el área afectada es muy pequeña, dificultando que la CNN extraiga características discriminativas suficientes. Este comportamiento es consistente con las expectativas y demuestra que el modelo es robusto y confiable para su implementación en un entorno real de diagnóstico fitosanitario.
+
+### [Análisis de Imagen: Curvas de entrenamiento del modelo — Accuracy, Loss, Precision y Recall]
+
+La imagen presenta cuatro gráficos en una matriz de **2 filas por 2 columnas**, mostrando la evolución de diferentes métricas durante el entrenamiento del modelo. Cada gráfico usa líneas de colores para diferenciar métricas de entrenamiento y validación. Los títulos están en inglés.
+
+#### Gráfico superior izquierdo: “Model Accuracy”
+
+Este gráfico compara:
+
+- **Train Accuracy**
+- **Val Accuracy**
+
+El eje horizontal representa las épocas de entrenamiento, aproximadamente de `0` a `19`. El eje vertical representa la exactitud o accuracy.
+
+La curva de entrenamiento muestra una tendencia ascendente constante: inicia cerca de `0.33` y supera `0.90` hacia las últimas épocas. La curva de validación es más variable, con subidas y bajadas, pero también alcanza valores altos cercanos o superiores a `0.90` en algunos puntos. Esto indica que el modelo aprende progresivamente, aunque la validación presenta fluctuaciones propias de un conjunto de evaluación o de condiciones variables.
+
+#### Gráfico superior derecho: “Model Loss”
+
+Este gráfico compara:
+
+- **Train Loss**
+- **Val Loss**
+
+El eje horizontal representa las épocas y el eje vertical representa la pérdida. La pérdida de entrenamiento disminuye de forma sostenida desde valores cercanos a `2.9` hasta valores alrededor de `0.2`, mostrando que el modelo reduce el error durante el aprendizaje.
+
+La pérdida de validación presenta fluctuaciones importantes, con picos altos alrededor de las épocas iniciales y medias, pero termina en valores más bajos. Esto evidencia que, aunque hay variabilidad en validación, la tendencia general del entrenamiento es favorable.
+
+#### Gráfico inferior izquierdo: “Model Precision”
+
+Este gráfico compara:
+
+- **Train Precision**
+- **Val Precision**
+
+La precisión de entrenamiento aumenta progresivamente desde valores cercanos a `0.47` hasta valores superiores a `0.94`. La precisión de validación tiene variaciones fuertes, pero logra valores altos en varias épocas, superando `0.90` hacia el final. Esto sugiere que, cuando el modelo predice una clase, suele acertar con alta confiabilidad, aunque la estabilidad en validación puede mejorarse.
+
+#### Gráfico inferior derecho: “Model Recall”
+
+Este gráfico compara:
+
+- **Train Recall**
+- **Val Recall**
+
+El recall de entrenamiento aumenta desde aproximadamente `0.23` hasta más de `0.90`. El recall de validación también sube con fluctuaciones, alcanzando valores cercanos a `0.88` en algunas épocas. Esta métrica indica la capacidad del modelo para recuperar correctamente ejemplos positivos de cada clase.
+
+La finalidad de esta imagen dentro del documento es mostrar el comportamiento del modelo a lo largo del entrenamiento. Permite evaluar si existe aprendizaje progresivo, si las métricas mejoran, y si hay señales de sobreajuste. En conjunto, los cuatro gráficos apoyan la idea de que el modelo aprende patrones útiles de las enfermedades foliares, aunque las curvas de validación muestran variabilidad.
+
+### Gráfica de Pérdida/Precisión
+
+Las curvas muestran una reducción del **81.1%** en la función de pérdida y un crecimiento estable en la precisión. No se observa **overfitting** o sobreajuste, lo que garantiza que el modelo es capaz de generalizar ante nuevas imágenes de hojas.
+
+### [Análisis de Imagen: Evolución real de Accuracy y Loss]
+
+La imagen contiene dos gráficos colocados lado a lado. Ambos están relacionados con la evolución real del entrenamiento del modelo.
+
+#### Gráfico izquierdo: “Evolución Real de Accuracy”
+
+Este gráfico muestra la evolución de la métrica **Accuracy** por época. El eje horizontal está etiquetado como **“Época”** y va aproximadamente de `1` a `20`. El eje vertical está etiquetado como **“Accuracy”** y va de `0.0` a `1.0`.
+
+La línea azul corresponde a **Train Accuracy**. Inicia cerca de `0.33`, señalado con una anotación que dice **“Inicio del Aprendizaje (33%)”**. Luego la curva sube de forma constante, pasando aproximadamente por valores como `0.55`, `0.69`, `0.78`, `0.84`, hasta llegar cerca de `0.94`. En la parte superior derecha se observa una anotación verde que dice **“Convergencia Final (~94%)”**. También hay una anotación azul en la zona media que indica **“Crecimiento Constante (Logarítmico)”**.
+
+El gráfico comunica que el modelo va mejorando progresivamente conforme avanzan las épocas, con un crecimiento fuerte al inicio y una estabilización hacia el final.
+
+#### Gráfico derecho: “Evolución Real de Loss”
+
+Este gráfico muestra la evolución de la función de pérdida o **Loss**. El eje horizontal está etiquetado como **“Época”** y va aproximadamente de `1` a `20`. El eje vertical está etiquetado como **“Loss”** y tiene valores que llegan hasta cerca de `3.0`.
+
+La línea roja corresponde a **Train Loss**. Inicia en un valor alto cercano a `2.9` y desciende rápidamente hacia `1.5`. Hay una anotación que dice **“Caída Drástica Inicial (2.9 -> 1.5)”**, indicando que el modelo reduce rápidamente su error en las primeras épocas. Luego la pérdida continúa bajando de forma gradual hasta valores cercanos a `0.2`. En la zona media aparece una anotación roja que dice **“Estabilización”**, mostrando que la curva se vuelve más suave conforme el modelo converge.
+
+El propósito de esta imagen es reforzar que el modelo tuvo un aprendizaje progresivo y estable. La exactitud aumenta mientras la pérdida disminuye, lo cual es el comportamiento esperado en un entrenamiento exitoso. Además, visualmente respalda la afirmación de convergencia alrededor del 94%.
+
+### Ejemplos de Predicciones (Detecciones)
+
+Como se observa en los ejemplos, el modelo identifica correctamente tanto hojas sanas como enfermas. Los fallos detectados ocurren principalmente en lesiones incipientes donde el área afectada es mínima, dificultando la extracción de características discriminativas por parte de la CNN.
+
+### [Análisis de Imagen: Visualización de detecciones correctas]
+
+La imagen corresponde a una visualización titulada **“Detecciones Correctas”**. En la parte superior se muestran dos datos generales:
+
+- **Total de ejemplos en esta categoría:** 1866.
+- **Precisión General del Modelo:** 89.88%.
+
+Visualmente, la imagen está organizada en una cuadrícula de **3 columnas por 3 filas**, con **9 ejemplos de clasificación correcta**. Cada ejemplo presenta una imagen de una hoja y una franja negra con texto blanco, donde se muestra la clase predicha por el modelo y la clase real. En todos los casos visibles, la predicción coincide con la etiqueta real.
+
+Transcripción de los textos visibles por ejemplo:
+
+1. **Ejemplo superior izquierdo**
+   - `Pred: Tomato Early blight`
+   - `Real: Tomato Early blight`
+   - La hoja presenta lesiones oscuras compatibles con tizón temprano.
+
+2. **Ejemplo superior central**
+   - `Pred: Tomato Early blight`
+   - `Real: Tomato Early blight`
+   - La hoja muestra una mancha localizada, y el modelo clasifica correctamente la enfermedad.
+
+3. **Ejemplo superior derecho**
+   - `Pred: Potato Late blight`
+   - `Real: Potato Late blight`
+   - La hoja tiene áreas necróticas amplias, típicas de tizón tardío en papa.
+
+4. **Ejemplo medio izquierdo**
+   - `Pred: Tomato healthy`
+   - `Real: Tomato healthy`
+   - La hoja se observa verde, sin lesiones evidentes, y el modelo la clasifica como sana.
+
+5. **Ejemplo medio central**
+   - `Pred: Tomato Early blight`
+   - `Real: Tomato Early blight`
+   - La hoja presenta manchas múltiples y zonas de deterioro; la predicción coincide con la clase real.
+
+6. **Ejemplo medio derecho**
+   - `Pred: Tomato Tomato YellowLe...`
+   - `Real: Tomato Tomato YellowLe...`
+   - El texto está truncado visualmente, pero corresponde a una clase asociada a **Tomato Yellow Leaf Curl Virus** o una denominación similar. La predicción coincide con la etiqueta real.
+
+7. **Ejemplo inferior izquierdo**
+   - `Pred: Tomato Bacterial spot`
+   - `Real: Tomato Bacterial spot`
+   - La hoja muestra pequeñas manchas y bordes afectados, y el modelo identifica correctamente la clase.
+
+8. **Ejemplo inferior central**
+   - `Pred: Tomato Tomato YellowLe...`
+   - `Real: Tomato Tomato YellowLe...`
+   - Nuevamente el texto está truncado, pero la predicción y la clase real coinciden. La hoja tiene zonas amarillentas intensas.
+
+9. **Ejemplo inferior derecho**
+   - `Pred: Tomato Late blight`
+   - `Real: Tomato Late blight`
+   - La hoja presenta una lesión oscura amplia, y el modelo clasifica correctamente la enfermedad.
+
+La finalidad de esta imagen es demostrar ejemplos concretos de inferencia correcta. Aporta evidencia visual de que el modelo distingue enfermedades con patrones relativamente claros, como tizón temprano, tizón tardío, mancha bacteriana y hojas sanas. También permite observar que el sistema no solo clasifica enfermedades, sino que diferencia entre cultivos y patologías específicas.
+
+---
+
+
+ANEXOS TÉCNICOS
+
+- **Código Fuente Principal:** scripts de entrenamiento, preprocesamiento y predicción en Python.
+- **Servicio API:** Flask + Docker, manejando la inferencia y exposición de la API REST.
+- **Contenerización:** Dockerfile para empaquetado de modelo y dependencias.
+- **Bitácora de Desarrollo:** registro de problemas y soluciones relevantes durante la implementación.
+- **Visualizaciones:** gráficas de entrenamiento, matriz de confusión y ejemplos de detección de hojas sanas/enfermas.
+
+REFERENCIAS
+
+- He, K., Zhang, X., Ren, S., & Sun, J. (2016). *Deep Residual Learning for Image Recognition* (Paper de ResNet).
+- Documentación oficial de Apache Spark, Docker y MLflow.
+- Dataset público PlantVillage para enfermedades foliares: Kaggle PlantVillage.
+- TensorFlow 2.x y Keras: documentación oficial de APIs para CNN y Transfer Learning.
+- Horovod: documentación oficial para entrenamiento distribuido y Ring-AllReduce.

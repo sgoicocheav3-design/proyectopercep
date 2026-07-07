@@ -1,0 +1,13 @@
+# Dependencias minimas para servir el modelo entrenado via la API REST
+# (src/api/app.py + src/api/inference.py). No incluye pyspark, horovod,
+# scikit-learn, matplotlib ni kaggle: esas solo hacen falta para el
+# pipeline de datos/entrenamiento (ver requirements.txt), no para inferencia,
+# y horovod en particular no se puede instalar sin MPI/CMake en la imagen
+# de deploy.
+tensorflow==2.13.0
+numpy==1.24.3
+Pillow==10.0.0
+
+flask==2.3.3
+flask-cors==4.0.1
+gunicorn==21.2.0
