@@ -4,7 +4,14 @@
 # pipeline de datos/entrenamiento (ver requirements.txt), no para inferencia,
 # y horovod en particular no se puede instalar sin MPI/CMake en la imagen
 # de deploy.
-tensorflow==2.13.0
+#
+# tflite-runtime (no tensorflow completo): el modelo se sirve desde
+# models/tflite/model.tflite (ver scripts/convert_to_tflite.py). Importar
+# tensorflow completo consume ~270MB de RAM antes de cargar ningun modelo;
+# tflite-runtime es un interprete standalone de unos pocos MB. En un plan
+# con 512MB de limite (Render free) esa diferencia es la que evita que el
+# proceso quede al borde del OOM apenas arranca.
+tflite-runtime==2.14.0
 numpy==1.24.3
 Pillow==10.0.0
 

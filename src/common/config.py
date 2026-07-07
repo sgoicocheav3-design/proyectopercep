@@ -22,6 +22,12 @@ CHECKPOINTS_DIR = os.path.join(MODELS_DIR, "checkpoints")
 SAVED_MODEL_DIR = os.path.join(MODELS_DIR, "saved_model")
 EVALUATION_DIR = os.path.join(MODELS_DIR, "evaluation")
 
+# Modelo convertido a TFLite: lo usa la API de inferencia en produccion
+# (src/api/inference.py) para evitar la sobrecarga de RAM de importar
+# tensorflow completo en el contenedor de deploy (ver docker/Dockerfile).
+TFLITE_MODEL_DIR = os.path.join(MODELS_DIR, "tflite")
+TFLITE_MODEL_PATH = os.path.join(TFLITE_MODEL_DIR, "model.tflite")
+
 # ---------------------------------------------------------------------------
 # Clases del dataset (PlantVillage - subconjunto de 15 clases)
 # Tomate: 10 | Papa: 3 | Pimiento: 2  -> ver seccion 3.1 del documento fuente

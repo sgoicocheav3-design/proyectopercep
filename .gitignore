@@ -4,8 +4,9 @@ data/interim/
 data/processed/
 
 # Modelos entrenados
-# (models/saved_model/ SI se versiona: es el artefacto de inferencia que
-# necesita el backend para el deploy)
+# (models/saved_model/ y models/tflite/ SI se versionan: saved_model/ es el
+# artefacto de entrenamiento fuente, tflite/ es el que copia el Dockerfile
+# de deploy - ver scripts/convert_to_tflite.py)
 models/checkpoints/
 models/evaluation/
 models/_local_test/

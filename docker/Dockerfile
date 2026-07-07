@@ -11,15 +11,17 @@ COPY requirements-api.txt .
 RUN pip install --no-cache-dir -r requirements-api.txt
 
 COPY src/ src/
-COPY models/saved_model/ models/saved_model/
+COPY models/tflite/ models/tflite/
 
 ENV PYTHONPATH=/app
 EXPOSE 5000
 
 # Render (y servicios similares) inyectan $PORT en runtime; se usa 5000 como
 # fallback para correr el contenedor localmente sin definir esa variable.
-# 1 solo worker: cada worker de gunicorn carga su propia copia de TensorFlow
-# + el modelo en memoria: con 2+ workers se supera la RAM del plan free de
-# Render (512MB) y el proceso muere (OOM -> 502). --threads da algo de
-# concurrencia sin duplicar el modelo.
+# 1 solo worker: cada worker de gunicorn carga su propia copia del modelo en
+# memoria. Con tflite-runtime el costo por worker es de pocos MB (antes,
+# con tensorflow completo, cada worker sumaba ~270MB solo por el import y
+# 2+ workers superaban la RAM del plan free de Render de 512MB). Se deja en
+# 1 de todas formas porque no hay evidencia de que el trafico actual lo
+# necesite; --threads da concurrencia sin duplicar el modelo.
 CMD gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 1 --threads 4 --timeout 120 src.api.app:app
