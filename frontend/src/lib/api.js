@@ -44,18 +44,32 @@ export async function checkHealth() {
  * "Pepper__bell___Bacterial_spot") a algo presentable en la UI.
  */
 export function formatPrediction(raw) {
-  const clean = raw.predicted_class.replace(/_+/g, ' ').trim();
-  const isHealthy = /healthy/i.test(clean);
-  const [cropRaw, ...rest] = clean.split(' ');
-  const crop = cropRaw.charAt(0).toUpperCase() + cropRaw.slice(1).toLowerCase();
-  const condition = isHealthy
-    ? 'Healthy'
-    : rest.filter((word) => word.toLowerCase() !== 'bell').join(' ') || 'Unknown';
+  const translations = {
+    "Pepper__bell___Bacterial_spot": { crop: "Pimiento", condition: "Mancha bacteriana" },
+    "Pepper__bell___healthy": { crop: "Pimiento", condition: "Saludable" },
+    "Potato___Early_blight": { crop: "Papa", condition: "Tizón temprano" },
+    "Potato___Late_blight": { crop: "Papa", condition: "Tizón tardío" },
+    "Potato___healthy": { crop: "Papa", condition: "Saludable" },
+    "Tomato_Bacterial_spot": { crop: "Tomate", condition: "Mancha bacteriana" },
+    "Tomato_Early_blight": { crop: "Tomate", condition: "Tizón temprano" },
+    "Tomato_Late_blight": { crop: "Tomate", condition: "Tizón tardío" },
+    "Tomato_Leaf_Mold": { crop: "Tomate", condition: "Moho de la hoja" },
+    "Tomato_Septoria_leaf_spot": { crop: "Tomate", condition: "Mancha foliar por Septoria" },
+    "Tomato_Spider_mites_Two_spotted_spider_mite": { crop: "Tomate", condition: "Ácaros (Araña roja)" },
+    "Tomato__Target_Spot": { crop: "Tomate", condition: "Mancha objetivo" },
+    "Tomato__Tomato_YellowLeaf__Curl_Virus": { crop: "Tomate", condition: "Virus de hoja amarilla" },
+    "Tomato__Tomato_mosaic_virus": { crop: "Tomate", condition: "Virus del mosaico" },
+    "Tomato_healthy": { crop: "Tomate", condition: "Saludable" },
+  };
+
+  const translated = translations[raw.predicted_class] || { crop: "Desconocido", condition: "Desconocido" };
+  const isHealthy = raw.predicted_class.toLowerCase().includes('healthy');
 
   return {
-    crop,
-    condition,
+    crop: translated.crop,
+    condition: translated.condition,
     isHealthy,
+    rawClass: raw.predicted_class,
     confidencePct: Math.round(raw.confidence * 100),
   };
 }

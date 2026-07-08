@@ -43,6 +43,10 @@ def create_app() -> Flask:
 
         image_bytes = file.read()
         result = predict(image_bytes)
+        
+        if "error" in result:
+            return jsonify(result), 400
+            
         return jsonify(result)
 
     return app

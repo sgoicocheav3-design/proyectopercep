@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Camera, ChevronDown, Image as ImageIcon, Leaf, Loader2, HeartPulse, UploadCloud, CheckCircle2 } from 'lucide-react';
 import { identifyPlant, formatPrediction } from '../lib/api';
 import { addHistoryEntry, fileToCompressedDataUrl } from '../lib/storage';
+import { TREATMENTS } from '../data/treatments';
 
 const CROP_OPTIONS = [
   { value: 'auto',   label: 'Todos los cultivos' },
@@ -40,24 +41,31 @@ function ResultsSkeleton() {
   );
 }
 
-export default function PlantIdentifier() {
-  const [cropType, setCropType]         = useState('auto');
-  const [imageFile, setImageFile]       = useState(null);
-  const [previewUrl, setPreviewUrl]     = useState(null);
-  const [status, setStatus]             = useState('idle'); // idle | analyzing | done | error
-  const [result, setResult]             = useState(null);
-  const [errorMessage, setErrorMessage] = useState('');
+export default function PlantIdentifier({ persistedState, onStateChange }) {
+  // Leemos el estado desde el padre (persiste entre navegaciones).
+  const cropType     = persistedState?.cropType     ?? 'auto';
+  const imageFile    = persistedState?.imageFile    ?? null;
+  const previewUrl   = persistedState?.previewUrl   ?? null;
+  const status       = persistedState?.status       ?? 'idle';
+  const result       = persistedState?.result       ?? null;
+  const errorMessage = persistedState?.errorMessage ?? '';
+
+  // Helpers para actualizar solo un campo del estado persistente
+  function setCropType(v)     { onStateChange(s => ({ ...s, cropType: v })); }
+  function setImageFile(v)    { onStateChange(s => ({ ...s, imageFile: v })); }
+  function setPreviewUrl(v)   { onStateChange(s => ({ ...s, previewUrl: v })); }
+  function setStatus(v)       { onStateChange(s => ({ ...s, status: v })); }
+  function setResult(v)       { onStateChange(s => ({ ...s, result: v })); }
+  function setErrorMessage(v) { onStateChange(s => ({ ...s, errorMessage: v })); }
 
   const galleryInputRef = useRef(null);
   const cameraInputRef  = useRef(null);
 
-  // Revoca el object URL anterior al reemplazarlo o al desmontar, para no
-  // acumular blobs en memoria.
-  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
-
   function handleFileSelected(event) {
     const file = event.target.files?.[0];
     if (!file) return;
+    // Revocar URL anterior solo si existe
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setImageFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setResult(null);
@@ -104,7 +112,7 @@ export default function PlantIdentifier() {
     <div className="mx-auto w-full max-w-md px-4 pb-8 pt-5 lg:max-w-none lg:px-0 lg:pt-0 page-enter">
       <header className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-forest-700 lg:text-2xl">AI Plant Identifier</h1>
+          <h1 className="text-lg font-bold text-forest-700 lg:text-2xl">Identificador de Plantas con IA</h1>
           <p className="text-xs text-gray-400 mt-0.5">Identifica enfermedades en tus cultivos</p>
         </div>
       </header>
@@ -113,10 +121,10 @@ export default function PlantIdentifier() {
         {/* ── Columna izquierda: entrada ─────────────────── */}
         <div className="space-y-5">
           <div>
-            <h2 className="mb-4 text-xl font-semibold text-gray-800">Identify Your Plant</h2>
+            <h2 className="mb-4 text-xl font-semibold text-gray-800">Identifica tu Planta</h2>
 
             <label htmlFor="crop-type" className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-gray-400">
-              Select Plant Type
+              Selecciona el Cultivo
             </label>
             <div className="relative">
               <Leaf size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-forest-500" />
@@ -170,7 +178,7 @@ export default function PlantIdentifier() {
               className="group flex items-center justify-center gap-2 rounded-xl bg-forest-50 py-3 text-sm font-semibold text-forest-700 transition-all duration-200 hover:bg-forest-100 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0"
             >
               <ImageIcon size={18} className="transition-transform duration-200 group-hover:scale-110" />
-              Gallery
+              Galería
             </button>
             <button
               type="button"
@@ -178,7 +186,7 @@ export default function PlantIdentifier() {
               className="group flex items-center justify-center gap-2 rounded-xl bg-forest-50 py-3 text-sm font-semibold text-forest-700 transition-all duration-200 hover:bg-forest-100 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0"
             >
               <Camera size={18} className="transition-transform duration-200 group-hover:scale-110" />
-              Camera
+              Cámara
             </button>
             <input ref={galleryInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelected} />
             <input ref={cameraInputRef}  type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelected} />
@@ -192,7 +200,7 @@ export default function PlantIdentifier() {
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-forest-600 py-3.5 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:bg-forest-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:translate-y-0"
           >
             {status === 'analyzing' && <Loader2 size={18} className="animate-spin" />}
-            {status === 'analyzing' ? 'Analizando…' : 'Identify Plant'}
+            {status === 'analyzing' ? 'Analizando…' : 'Identificar Planta'}
           </button>
         </div>
 
@@ -208,16 +216,16 @@ export default function PlantIdentifier() {
 
           {status === 'done' && result && (
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm page-enter">
-              <h3 className="mb-4 text-base font-bold text-forest-700">Plant Identification Results</h3>
+              <h3 className="mb-4 text-base font-bold text-forest-700">Resultados del Análisis</h3>
               <dl className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Leaf size={16} className="shrink-0 text-forest-500" />
-                  <dt className="text-sm text-gray-500">Species:</dt>
+                  <dt className="text-sm text-gray-500">Especie:</dt>
                   <dd className="text-sm font-semibold text-gray-800">{result.crop}</dd>
                 </div>
                 <div className="flex items-center gap-2">
                   <HeartPulse size={16} className={`shrink-0 ${result.isHealthy ? 'text-forest-500' : 'text-amber-500'}`} />
-                  <dt className="text-sm text-gray-500">Health:</dt>
+                  <dt className="text-sm text-gray-500">Estado:</dt>
                   <dd className={`text-sm font-semibold ${result.isHealthy ? 'text-forest-600' : 'text-amber-600'}`}>
                     {result.condition}
                   </dd>
@@ -226,7 +234,7 @@ export default function PlantIdentifier() {
 
               <div className="mt-5">
                 <div className="mb-1.5 flex items-center justify-between text-xs text-gray-400">
-                  <span>Confidence</span>
+                  <span>Seguridad</span>
                   <span className="font-semibold text-gray-600">{result.confidencePct}%</span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
@@ -246,6 +254,31 @@ export default function PlantIdentifier() {
                 <CheckCircle2 size={13} className="text-forest-400" />
                 Guardado en tu historial
               </div>
+
+              {/* ── Bloque de Recomendaciones de Tratamiento ── */}
+              {result.rawClass && TREATMENTS[result.rawClass] && (
+                <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                  <p className="mb-1 text-xs font-bold uppercase tracking-widest text-gray-400">🌿 Descripción</p>
+                  <p className="mb-3 text-sm text-gray-600">{TREATMENTS[result.rawClass].description}</p>
+
+                  {!result.isHealthy && (
+                    <>
+                      <p className="mb-1 text-xs font-bold uppercase tracking-widest text-amber-500">⚕️ Pasos a seguir</p>
+                      <ul className="mb-3 space-y-1">
+                        {TREATMENTS[result.rawClass].steps.map((step, i) => (
+                          <li key={i} className="flex gap-2 text-sm text-gray-600">
+                            <span className="mt-0.5 shrink-0 text-amber-400">▸</span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+
+                  <p className="mb-1 text-xs font-bold uppercase tracking-widest text-forest-600">🛡️ Prevención</p>
+                  <p className="text-sm text-gray-600">{TREATMENTS[result.rawClass].prevention}</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -255,7 +288,7 @@ export default function PlantIdentifier() {
                 <Leaf size={24} strokeWidth={1.5} className="text-forest-400" />
               </div>
               <p className="text-sm font-medium text-gray-400">Los resultados del análisis aparecerán aquí</p>
-              <p className="text-xs text-gray-300">Sube una foto y pulsa "Identify Plant"</p>
+              <p className="text-xs text-gray-300">Sube una foto y pulsa "Identificar Planta"</p>
             </div>
           )}
         </div>

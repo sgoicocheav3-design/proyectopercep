@@ -15,6 +15,16 @@ export default function App() {
   const [backendOnline, setBackendOnline] = useState(true); // optimista hasta el primer chequeo
   const retryTimerRef = useRef(null);
 
+  // Estado persistente del identificador: sobrevive cambios de modulo
+  const [plantState, setPlantState] = useState({
+    imageFile: null,
+    previewUrl: null,
+    result: null,
+    status: 'idle',
+    errorMessage: '',
+    cropType: 'auto',
+  });
+
   useEffect(() => {
     let cancelled = false;
 
@@ -37,7 +47,7 @@ export default function App() {
   function renderScreen() {
     switch (activeTab) {
       case 'home':
-        return <PlantIdentifier />;
+        return <PlantIdentifier persistedState={plantState} onStateChange={setPlantState} />;
       case 'history':
         return <HistoryView onNavigate={setActiveTab} />;
       case 'diary':
