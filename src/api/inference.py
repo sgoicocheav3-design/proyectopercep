@@ -26,7 +26,6 @@ except ImportError:
 from src.common import config
 
 _interpreter = None  # cache del interprete cargado (lazy load)
-_mobilenet_model = None
 
 
 def load_model() -> Interpreter:
@@ -48,49 +47,37 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
 
 
 def _is_plant_or_leaf(image_bytes: bytes) -> bool:
-    """Filtro ultra-ligero (MobileNetV2) para rechazar objetos que no sean hojas."""
-    global _mobilenet_model
-    try:
-        from tensorflow.keras.applications import mobilenet_v2
-        from tensorflow.keras.preprocessing import image as keras_image
-    except ImportError:
-        # En produccion puro tflite (sin tf completo), saltamos el filtro por falta de RAM
-        return True
-
-    if _mobilenet_model is None:
-        # Pesa solo ~14MB, ideal para limites estrictos de RAM
-        _mobilenet_model = mobilenet_v2.MobileNetV2(weights='imagenet')
+    """Filtro ligero basado en analisis de color HSV para detectar si la imagen
+    contiene una planta o hoja (tonos verdes/marrones predominantes).
+    Funciona sin TensorFlow completo, solo necesita Pillow y numpy."""
+    import colorsys
 
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    image = image.resize((224, 224))
-    x = keras_image.img_to_array(image)
-    x = np.expand_dims(x, axis=0)
-    x = mobilenet_v2.preprocess_input(x)
-    
-    preds = _mobilenet_model.predict(x, verbose=0)
-    results = mobilenet_v2.decode_predictions(preds, top=5)[0]
-    
-    # Palabras clave de RECHAZO INMEDIATO (comida preparada, platos, animales, personas, arquitectura, objetos comunes)
-    reject_keywords = [
-        'bowl', 'plate', 'cup', 'dish', 'restaurant', 'menu', 'guacamole', 'consomme', 
-        'soup', 'pizza', 'burger', 'meat', 'fish', 'dog', 'cat', 'person', 'car', 'vehicle',
-        'house', 'building', 'toys', 'ball', 'racket', 'furniture', 'table', 'chair',
-        'potpie', 'trifle', 'hot_pot', 'wok', 'frying_pan', 'spatula', 'television', 'laptop',
-        'cell_phone', 'clothing', 'shoe', 'bottle'
-    ]
-    
-    # 1. Si detecta que es comida, platos, animales o cosas obvias, lo rechaza de inmediato.
-    for _, name, _ in results:
-        # Dividimos el nombre (ej. "hot_dog" -> ["hot", "dog"]) para evitar falsos positivos 
-        # como "greenhouse" bloqueado por culpa de la palabra "house".
-        words = name.lower().replace('_', ' ').split()
-        if any(keyword in words for keyword in reject_keywords):
-            return False
-            
-    # 2. Si NO es nada de lo anterior, la dejamos pasar. 
-    # (Los modelos genericos no conocen la palabra "hoja", asi que pueden clasificar
-    # una planta real como algo raro. Es mas seguro dejarla pasar si no es comida).
-    return True
+    # Reducimos a 64x64 para analisis rapido
+    image = image.resize((64, 64))
+    pixels = np.asarray(image, dtype=np.float32) / 255.0
+
+    green_count = 0
+    total = 0
+
+    for row in pixels:
+        for r, g, b in row:
+            h, s, v = colorsys.rgb_to_hsv(float(r), float(g), float(b))
+            total += 1
+            # Verde: hue entre 0.20 y 0.50 (60° a 180°), saturation > 0.12, no muy oscuro
+            # Tambien aceptamos marrones/amarillos (hojas enfermas): hue 0.05-0.20
+            h_deg = h * 360
+            if s > 0.12 and v > 0.10:
+                if 55 <= h_deg <= 185:   # verdes, amarillo-verdes, verde-azulados
+                    green_count += 1
+                elif 20 <= h_deg < 55 and s < 0.75:  # amarillos/marrones de hojas enfermas
+                    green_count += 1
+
+    green_ratio = green_count / total if total > 0 else 0
+
+    # Necesitamos al menos 18% de pixeles con tonos de planta para considerar que es una planta.
+    # El ceviche, casas, perros, etc. quedan muy por debajo de este umbral.
+    return green_ratio >= 0.18
 
 
 def predict(image_bytes: bytes) -> dict:
